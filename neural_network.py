@@ -3,6 +3,12 @@ import math
 import numpy as np
 
 
+def relu(x): return np.maximum(0, x)
+
+
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+
+
 def init_matrices(layer_sizes: list[int]) -> list[list[None | np.ndarray]]:
     """
     Returns activation and biases matrices with all elements initialized to 0 and weights matrices initialized using
@@ -24,10 +30,22 @@ class NeuralNetwork:
     def __init__(self, layer_sizes: list[int]):
         self.a, self.W, self.b = init_matrices(layer_sizes)
 
+    def __str__(self):
+        return '\nActivations:\n%s\n\nWeights:\n%s\n\nBiases:\n%s\n' % (
+            '\n\n'.join([np.array2string(matrix) for matrix in self.a]),
+            '\n\n'.join([np.array2string(matrix) for matrix in self.W[1:]]),
+            '\n\n'.join([np.array2string(matrix) for matrix in self.b[1:]]))
+
+    def forward_propagate(self, input_array: np.ndarray) -> np.ndarray:
+        self.a[0] = input_array
+        for i in range(1, len(self.a)):
+            self.a[i] = relu(self.W[i] @ self.a[i - 1] + self.b[i])
+
+        return self.a[-1]
+
 
 if __name__ == '__main__':
-    nn = NeuralNetwork([784, 100, 100, 10])
-    print(f'Activations: {nn.a}'
-          f'\nWeights: {nn.W}'
-          f'\nBias: {nn.b}'
-          )
+    nn = NeuralNetwork([5, 3, 2])
+    print(nn)
+    nn.forward_propagate(np.array([1, 2, 3, 4, 5]).reshape(-1, 1))
+    print(nn)
