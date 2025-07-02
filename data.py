@@ -17,4 +17,4 @@ def load_csv_to_numpy(label: str, path: str, destinations: dict[str, np.ndarray]
         next(reader, None)
         data = np.array(list(reader))
         destinations[label] = data
-    print(f'Finished "{label}" CSV from "{path}"!')
+    print(f'Finished loading "{label}" CSV from "{path}"!')
