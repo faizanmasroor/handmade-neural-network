@@ -35,9 +35,9 @@ def one_hot_decode(vector: np.ndarray) -> int: return int(np.argmax(vector))
 class NeuralNetwork:
     def __init__(self, activation_function: callable, layer_sizes: list[int]):
         self.activation_function = activation_function
-        self._init_matrices(layer_sizes)
+        self.__init_matrices(layer_sizes)
 
-    def _init_matrices(self, layer_sizes: list[int]):
+    def __init_matrices(self, layer_sizes: list[int]):
         """
         Returns activation and biases matrices with all elements initialized to 0 and weights matrices initialized using
         Kaiming He initialization. weights[0] and biases[0] are None to align with conventional neural network notation.
@@ -46,21 +46,19 @@ class NeuralNetwork:
         """
         self.a = [np.zeros((layer_size, 1)) for layer_size in layer_sizes]
         self.z = [None] + [np.zeros((layer_size, 1)) for layer_size in layer_sizes[1:]]
-        self.W = NeuralNetwork._he_init_weights(
-            layer_sizes) if self.activation_function == relu else NeuralNetwork._glorot_init_weights(layer_sizes)
+        if self.activation_function == relu: self.__he_init_weights(layer_sizes)
+        else: self.__glorot_init_weights(layer_sizes)
         self.b = [None] + [np.zeros((layer_size, 1)) for layer_size in layer_sizes[1:]]
 
-    @staticmethod
-    def _he_init_weights(layer_sizes: list[int]) -> list[None | np.ndarray]:
-        return [None] + [
+    def __he_init_weights(self, layer_sizes: list[int]):
+        self.W = [None] + [
             np.random.normal(loc=0, scale=math.sqrt(2 / input_size), size=(output_size, input_size))
             # For layer_sizes=[5, 3, 2], zip() returns iterable [(3, 5), (2, 3)]
             for output_size, input_size in zip(layer_sizes[1:], layer_sizes[:-1])
         ]
 
-    @staticmethod
-    def _glorot_init_weights(layer_sizes: list[int], gaussian=False) -> list[None | np.ndarray]:
-        return [None] + [
+    def __glorot_init_weights(self, layer_sizes: list[int], gaussian=False):
+        self.W = [None] + [
             np.random.normal(loc=0, scale=math.sqrt(2 / (in_len + out_len)), size=(out_len, in_len)) if gaussian
             else np.random.uniform(low=-math.sqrt(6 / (in_len + out_len)), high=math.sqrt(6 / (in_len + out_len)),
                                    size=(out_len, in_len))
@@ -89,9 +87,11 @@ class NeuralNetwork:
 if __name__ == '__main__':
     label = one_hot_encode(np.random.randint(0, 9), 10)
 
-    nn = NeuralNetwork(sigmoid, [784, 100, 100, 10])
+    nn = NeuralNetwork(relu, [784, 100, 100, 10])
     input_vector = np.random.randint(0, 255, (784, 1))
     output_vector = nn.forward_propagate(input_vector)
 
-    print(
-        f'Label ({one_hot_decode(label)}):\n{label}\n\nOutput:\n{output_vector}\n\nLoss: {categorical_cross_entropy_loss(label, output_vector)}')
+    print(f'Label ({one_hot_decode(label)}):\n{label}\n\n'
+          f'Output:\n{output_vector}\n\n'
+          f'Loss: {categorical_cross_entropy_loss(label, output_vector)}'
+          )
