@@ -2,26 +2,23 @@ import math
 
 import numpy as np
 
-np.set_printoptions(suppress=True)
+np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
 
 
-def relu(x): return np.maximum(0, x)
+def relu(x: np.ndarray) -> np.ndarray: return np.maximum(0, x)
 
 
-def sigmoid(x): return 1 / (1 + np.exp(-x))
-
-
-def softmax(x):
-    e_x = np.exp(x - np.max(x))  # Removes the max value of the input vector, has no effect on final result
+def softmax(x: np.ndarray) -> np.ndarray:
+    e_x = np.exp(x - np.max(x))  # Reduces chance of encountering OverflowError; does not affect return value
     return e_x / np.sum(e_x)
 
 
-def categorical_cross_entropy_loss(true: np.ndarray, pred: np.ndarray) -> float:
-    return -np.sum(true * np.log(pred + 1e-9))  # Epsilon (1e-9) is added to avoid np.log(0)
+def categorical_cross_entropy_loss(true_label: np.ndarray, predicted_label: np.ndarray) -> float:
+    return -np.sum(true_label * np.log(predicted_label + 1e-9))  # Epsilon (1e-9) is added to avoid computing log(0)
 
 
-def one_hot_encode(val: int, num_categories: int) -> np.ndarray:
-    if val >= num_categories: raise ValueError("The value {} is out of the range {}".format(val, num_categories))
+def one_hot_encode(val: int, num_categories: int = 10) -> np.ndarray:
+    if val >= num_categories: raise ValueError(f'The value {val} is out of the range {num_categories}')
 
     result = np.zeros((num_categories, 1))
     result[val] = 1
@@ -37,42 +34,23 @@ class NeuralNetwork:
         self.activation_function = activation_function
         self.__init_matrices(layer_sizes)
 
-    def __init_matrices(self, layer_sizes: list[int]):
-        """
-        Returns activation and biases matrices with all elements initialized to 0 and weights matrices initialized using
-        Kaiming He initialization. weights[0] and biases[0] are None to align with conventional neural network notation.
-        E.g, in forward propagation, the following statement may be used:
-        "a[1] = activation_function(W[1] * a[0] + b[1])"
-        """
-        self.a = [np.zeros((layer_size, 1)) for layer_size in layer_sizes]
-        self.z = [None] + [np.zeros((layer_size, 1)) for layer_size in layer_sizes[1:]]
-        if self.activation_function == relu: self.__he_init_weights(layer_sizes)
-        else: self.__glorot_init_weights(layer_sizes)
-        self.b = [None] + [np.zeros((layer_size, 1)) for layer_size in layer_sizes[1:]]
-
-    def __he_init_weights(self, layer_sizes: list[int]):
-        self.W = [None] + [
-            np.random.normal(loc=0, scale=math.sqrt(2 / input_size), size=(output_size, input_size))
-            # For layer_sizes=[5, 3, 2], zip() returns iterable [(3, 5), (2, 3)]
-            for output_size, input_size in zip(layer_sizes[1:], layer_sizes[:-1])
-        ]
-
-    def __glorot_init_weights(self, layer_sizes: list[int], gaussian=False):
-        self.W = [None] + [
-            np.random.normal(loc=0, scale=math.sqrt(2 / (in_len + out_len)), size=(out_len, in_len)) if gaussian
-            else np.random.uniform(low=-math.sqrt(6 / (in_len + out_len)), high=math.sqrt(6 / (in_len + out_len)),
-                                   size=(out_len, in_len))
-            # For layer_sizes=[5, 3, 2], zip() returns iterable [(3, 5), (2, 3)]
-            for out_len, in_len in zip(layer_sizes[1:], layer_sizes[:-1])
-        ]
-
     def __str__(self):
-        return '\nActivations (a):\n%s\n\nRaw Activations (z):\n%s\n\nWeights (W):\n%s\n\nBiases (b):\n%s\n' % (
-            '\n\n'.join([np.array2string(matrix) for matrix in self.a]),
-            '\n\n'.join([np.array2string(matrix) for matrix in self.z[1:]]),
-            '\n\n'.join([np.array2string(matrix) for matrix in self.W[1:]]),
-            '\n\n'.join([np.array2string(matrix) for matrix in self.b[1:]])
+        a, z, W, b = self.a, self.z[1:], self.W[1:], self.b[1:]
+        headers = ("Activation Matrices", "Raw Activation Matrices", "Weight Matrices", "Bias Matrices")
+
+        display = (
+            f'{headers[0]} ({len(a)}):\n%s\n\n'
+            f'{headers[1]} ({len(z)}):\n%s\n\n'
+            f'{headers[2]} ({len(W)}):\n%s\n\n'
+            f'{headers[3]} ({len(b)}):\n%s\n\n'
+        ) % (
+            '\n\n'.join([f'Layer Index: {i}, Shape: {mat.shape}\n{np.array2string(mat)}' for i, mat in enumerate(a, start=0)]),
+            '\n\n'.join([f'Layer Index: {i}, Shape: {mat.shape}\n{np.array2string(mat)}' for i, mat in enumerate(z, start=1)]),
+            '\n\n'.join([f'Layer Index: {i}, Shape: {mat.shape}\n{np.array2string(mat)}' for i, mat in enumerate(W, start=1)]),
+            '\n\n'.join([f'Layer Index: {i}, Shape: {mat.shape}\n{np.array2string(mat)}' for i, mat in enumerate(b, start=1)]),
         )
+
+        return '\n'.join(line if any(line.startswith(header) for header in headers) else '\t' + line for line in display.splitlines())
 
     def forward_propagate(self, input_array: np.ndarray) -> np.ndarray:
         self.a[0] = input_array
@@ -83,15 +61,39 @@ class NeuralNetwork:
 
         return self.a[-1]
 
+    def __init_matrices(self, layer_sizes: list[int]):
+        """
+        Returns activation and biases matrices with all elements initialized to 0 and weights matrices initialized using
+        Kaiming He initialization. weights[0] and biases[0] are None to align with conventional neural network notation.
+        E.g, in forward propagation, the following statement may be used:
+        "a[1] = activation_function(W[1] * a[0] + b[1])"
+        """
+        self.a = [np.zeros((layer_size, 1)) for layer_size in layer_sizes]
+        self.z = [None] + [np.zeros((layer_size, 1)) for layer_size in layer_sizes[1:]]
+        self.W = NeuralNetwork.__he_init_weights(layer_sizes)
+        self.b = [None] + [np.zeros((layer_size, 1)) for layer_size in layer_sizes[1:]]
+
+    @staticmethod
+    def __he_init_weights(layer_sizes: list[int]) -> list[None | np.ndarray]:
+        return [None] + [
+            np.random.normal(loc=0, scale=math.sqrt(2 / input_size), size=(output_size, input_size))
+            # For layer_sizes=[5, 3, 2], zip() returns iterable [(3, 5), (2, 3)]
+            for output_size, input_size in zip(layer_sizes[1:], layer_sizes[:-1])
+        ]
+
 
 if __name__ == '__main__':
-    label = one_hot_encode(np.random.randint(0, 9), 10)
+    nn = NeuralNetwork(relu, [784, 128, 64, 10])
 
-    nn = NeuralNetwork(relu, [784, 100, 100, 10])
-    input_vector = np.random.randint(0, 255, (784, 1))
-    output_vector = nn.forward_propagate(input_vector)
+    input_vector = np.random.randint(256, size=(784, 1))
+    prediction = nn.forward_propagate(input_vector)
+    label = one_hot_encode(np.random.randint(10))
+    loss = categorical_cross_entropy_loss(label, prediction)
 
-    print(f'Label ({one_hot_decode(label)}):\n{label}\n\n'
-          f'Output:\n{output_vector}\n\n'
-          f'Loss: {categorical_cross_entropy_loss(label, output_vector)}'
-          )
+    print(nn)
+
+    print(
+          f'Prediction (Decoded => {one_hot_decode(prediction)})\n{prediction}\n\n'
+          f'Label (Decoded => {one_hot_decode(label)})\n{label}\n\n'
+          f'Loss: {loss}'
+    )
