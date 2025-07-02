@@ -2,6 +2,8 @@ import math
 
 import numpy as np
 
+from data import load_data
+
 np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
 
 
@@ -83,6 +85,12 @@ class NeuralNetwork:
 
 
 if __name__ == '__main__':
+    data = {}
+    load_data({
+        'train': 'image_data/mnist_train.csv',
+        'test': 'image_data/mnist_test.csv'
+    }, data)
+
     nn = NeuralNetwork(relu, [784, 128, 64, 10])
 
     input_vector = np.random.randint(256, size=(784, 1))
@@ -93,7 +101,7 @@ if __name__ == '__main__':
     print(nn)
 
     print(
-          f'Prediction (Decoded => {one_hot_decode(prediction)})\n{prediction}\n\n'
-          f'Label (Decoded => {one_hot_decode(label)})\n{label}\n\n'
-          f'Loss: {loss}'
+        f'Prediction (Decoded => {one_hot_decode(prediction)})\n{prediction}\n\n'
+        f'Label (Decoded => {one_hot_decode(label)})\n{label}\n\n'
+        f'Loss: {loss}'
     )
