@@ -10,7 +10,7 @@ np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
 def relu(x: np.ndarray) -> np.ndarray: return np.maximum(0, x)
 
 
-def deriv_relu(x: np.ndarray) -> np.ndarray: return np.where(x > 0, x, 1)
+def deriv_relu(x: np.ndarray) -> np.ndarray: return np.where(x > 0, 1, 0)
 
 
 def softmax(x: np.ndarray) -> np.ndarray:
