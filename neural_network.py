@@ -190,7 +190,7 @@ if __name__ == '__main__':
                     nn.b[layer_idx] -= batch_estimate['db'][layer_idx]
 
                 print(
-                    f'Epoch #{epoch_idx + 1}, Sample #{sample_idx}{f', Batch #{batch_num}, Batch Average Loss: {sum(batch_losses) / len(batch_losses)}' if gradient_descent_performed else ''}'
+                    f'Epoch #{epoch_idx}, Sample #{sample_idx}{f', Batch #{batch_num}, Batch Average Loss: {sum(batch_losses) / len(batch_losses)}' if gradient_descent_performed else ''}'
                 )
 
                 batch_gradients = []
