@@ -49,6 +49,67 @@ class NeuralNetwork:
             line if any(line.startswith(header) for header in headers) else '\t' + line for line in display.splitlines()
         )
 
+    def train(self, num_epochs: int, train_data: list[tuple[np.ndarray, np.ndarray]]):
+        for epoch_idx in range(num_epochs):
+            # Size should not exceed the constant "BATCH_SIZE"
+            batch_gradients: list[dict[str, list[None | np.ndarray]]] = []
+            batch_losses: list[float] = []
+            batch_num = 0
+            np.random.shuffle(train_data)
+            for sample_idx, (label, pixels) in enumerate(train_data, 1):
+                # IMPORTANT! Make forward propagation and backward propagation are called in order
+                prediction = self.forward_propagate(pixels)
+                gradients = self.backward_propagate(label)
+
+                batch_gradients += [gradients]
+                batch_losses += [categorical_cross_entropy_loss(label, prediction)]
+
+                # If true, perform batch gradient descent
+                if len(batch_gradients) >= BATCH_SIZE or sample_idx == len(train_data):
+                    batch_num += 1
+                    num_layers = len(batch_gradients[0]['dW'])
+
+                    # The scaled (by learning rate) batch-averaged gradient for the weights and biases, at each layer;
+                    # e.g., batch_estimate['dW'][2] stores the average dW2 np.ndarray of the last batch's backpropagations
+                    batch_estimate: dict[str, list[None | np.ndarray]] = {
+                        'dW': [None] + [
+                            LEARNING_RATE * np.mean(
+                                [batch_gradient['dW'][layer_idx] for batch_gradient in batch_gradients],
+                                axis=0
+                            )
+                            for layer_idx in range(1, num_layers)
+                        ],
+                        'db': [None] + [
+                            LEARNING_RATE * np.mean(
+                                [batch_gradient['db'][layer_idx] for batch_gradient in batch_gradients],
+                                axis=0
+                            )
+                            for layer_idx in range(1, num_layers)
+                        ]
+                    }
+
+                    for layer_idx in range(1, num_layers):
+                        self.W[layer_idx] -= batch_estimate['dW'][layer_idx]
+                        self.b[layer_idx] -= batch_estimate['db'][layer_idx]
+
+                    print(
+                        f'Epoch #{epoch_idx + 1}, '
+                        f'Sample #{sample_idx}, '
+                        f'Batch #{batch_num}, '
+                        f'Batch Average Loss: {sum(batch_losses) / len(batch_losses)}'
+                    )
+
+                    batch_gradients = []
+                    batch_losses = []
+
+    def test(self, test_data: list[tuple[np.ndarray, np.ndarray]]):
+        num_correct = 0
+        for label, pixels in test_data:
+            prediction = self.forward_propagate(pixels)
+            if one_hot_decode(prediction) == one_hot_decode(label): num_correct += 1
+
+        print(f'Accuracy: {100 * num_correct / len(data['test'])}% ({num_correct}/{len(data['test'])})')
+
     def forward_propagate(self, input_array: np.ndarray) -> np.ndarray:
         input_array = input_array.astype(np.float64)
 
@@ -101,76 +162,7 @@ if __name__ == '__main__':
         'train': 'image_data/mnist_train.csv'
     }, data)
 
-    # print('Preprocessing "test" data...')
-    # data['test'] = [
-    #     (one_hot_encode(int(raw_vector[0])), raw_vector[1:].reshape(-1, 1).astype(np.float64))
-    #     for raw_vector in data['test']
-    # ]
-    # print('Finished preprocessing "test" data!')
-    #
-    # print('Preprocessing "train" data...')
-    # data['train'] = [
-    #     (one_hot_encode(int(raw_vector[0])), raw_vector[1:].reshape(-1, 1).astype(np.float64))
-    #     for raw_vector in data['train']
-    # ]
-    # print('Finished preprocessing "train" data!')
-
     nn = NeuralNetwork(relu, [784, 128, 64, 10])
 
-    for epoch_idx in range(NUM_EPOCHS):
-        # Size should not exceed the constant "BATCH_SIZE"
-        batch_gradients: list[dict[str, list[None | np.ndarray]]] = []
-        batch_losses: list[float] = []
-        batch_num = 0
-        for sample_idx, (label, pixels) in enumerate(data['train'], 1):
-            gradient_descent_performed = False
-
-            # IMPORTANT! Make forward propagation and backward propagation are called in order
-            prediction = nn.forward_propagate(pixels)
-            gradients = nn.backward_propagate(label)
-
-            batch_gradients += [gradients]
-            batch_losses += [categorical_cross_entropy_loss(label, prediction)]
-
-            # If true, perform batch gradient descent
-            if len(batch_gradients) >= BATCH_SIZE or sample_idx == len(data['train']):
-                batch_num += 1
-                gradient_descent_performed = True
-                num_layers = len(batch_gradients[0]['dW'])
-
-                # The scaled (by learning rate) batch-averaged gradient for the weights and biases, at each layer;
-                # e.g., batch_estimate['dW'][2] stores the average dW2 np.ndarray of the last batch's backpropagations
-                batch_estimate: dict[str, list[None | np.ndarray]] = {
-                    'dW': [None] + [
-                        LEARNING_RATE * np.mean(
-                            [batch_gradient['dW'][layer_idx] for batch_gradient in batch_gradients],
-                            axis=0
-                        )
-                        for layer_idx in range(1, num_layers)
-                    ],
-                    'db': [None] + [
-                        LEARNING_RATE * np.mean(
-                            [batch_gradient['db'][layer_idx] for batch_gradient in batch_gradients],
-                            axis=0
-                        )
-                        for layer_idx in range(1, num_layers)
-                    ]
-                }
-
-                for layer_idx in range(1, num_layers):
-                    nn.W[layer_idx] -= batch_estimate['dW'][layer_idx]
-                    nn.b[layer_idx] -= batch_estimate['db'][layer_idx]
-
-                print(
-                    f'Epoch #{epoch_idx + 1}, Sample #{sample_idx}{f', Batch #{batch_num}, Batch Average Loss: {sum(batch_losses) / len(batch_losses)}' if gradient_descent_performed else ''}'
-                )
-
-                batch_gradients = []
-                batch_losses = []
-
-    num_correct = 0
-    for label, pixels in data['test']:
-        prediction = nn.forward_propagate(pixels)
-        if one_hot_decode(prediction) == one_hot_decode(label): num_correct += 1
-
-    print(f'Accuracy: {100 * num_correct / len(data['test'])}% ({num_correct}/{len(data['test'])})')
+    nn.train(NUM_EPOCHS, data['train'])
+    nn.test(data['test'])
