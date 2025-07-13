@@ -20,7 +20,7 @@ np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
 class NeuralNetwork:
     def __init__(self, activation_function: callable, layer_sizes: list[int]):
         self.activation_function = activation_function
-        self.__init_matrices(layer_sizes)
+        self._init_matrices(layer_sizes)
 
     def __str__(self):
         a, z, W, b = self.a, self.z[1:], self.W[1:], self.b[1:]
@@ -140,7 +140,7 @@ class NeuralNetwork:
 
         return {'dW': dW, 'db': db}
 
-    def __init_matrices(self, layer_sizes: list[int]):
+    def _init_matrices(self, layer_sizes: list[int]):
         """
         Initializes all matrices to 0, except for the weights matrices, which are initialized using Kaiming He
         initialization. W[0] and b[0] are None to align with conventional neural network notation:
@@ -148,11 +148,11 @@ class NeuralNetwork:
         """
         self.a = [np.zeros((layer_size, 1)) for layer_size in layer_sizes]
         self.z = [None] + [np.zeros((layer_size, 1)) for layer_size in layer_sizes[1:]]
-        self.W = NeuralNetwork.__he_init_weights(layer_sizes)
+        self.W = NeuralNetwork._he_init_weights(layer_sizes)
         self.b = [None] + [np.zeros((layer_size, 1)) for layer_size in layer_sizes[1:]]
 
     @staticmethod
-    def __he_init_weights(layer_sizes: list[int]) -> list[None | np.ndarray]:
+    def _he_init_weights(layer_sizes: list[int]) -> list[None | np.ndarray]:
         return [None] + [
             np.random.normal(loc=0, scale=math.sqrt(2 / input_size), size=(output_size, input_size))
             # For layer_sizes=[5, 3, 2], zip() returns iterable [(3, 5), (2, 3)]
