@@ -1,9 +1,14 @@
 import math
+import pickle
+import pickle as pkl
 
 import numpy as np
 
 from data import load_data
 from matrix_math import relu, deriv_relu, softmax, categorical_cross_entropy_loss, one_hot_decode
+
+DATA_PICKLE = 'pickles/data.pkl'
+NN_PICKLE = 'pickles/nn.pkl'
 
 NUM_EPOCHS = 10
 BATCH_SIZE = 64
@@ -156,13 +161,31 @@ class NeuralNetwork:
 
 
 if __name__ == '__main__':
-    data: dict[str, list[tuple[np.ndarray, np.ndarray]]] = {}
-    load_data({
-        'test': 'image_data/mnist_test.csv',
-        'train': 'image_data/mnist_train.csv'
-    }, data)
+    try:
+        with open(DATA_PICKLE, 'rb') as f:
+            data = pickle.load(f)
+    except FileNotFoundError as e:
+        print(f'Pickle file not found: {e.filename}; Loading data from CSV...')
+        data: dict[str, list[tuple[np.ndarray, np.ndarray]]] = {}
+        load_data({
+            'test': 'data/mnist_test.csv',
+            'train': 'data/mnist_train.csv'
+        }, data)
 
-    nn = NeuralNetwork(relu, [784, 128, 64, 10])
+        print(f'Saving training and testing data as {DATA_PICKLE}...')
+        with open(DATA_PICKLE, 'wb') as f:
+            pkl.dump(data, f)
 
-    nn.train(NUM_EPOCHS, data['train'])
-    nn.test(data['test'])
+    try:
+        with open(NN_PICKLE, 'rb') as f:
+            nn = pkl.load(f)
+        print(f'Successfully loaded NeuralNetwork from {NN_PICKLE}!')
+        nn.test(data['test'])
+    except FileNotFoundError as e:
+        print(f'Pickle file not found: {e.filename}; Initializing and training neural network...')
+        nn = NeuralNetwork(relu, [784, 128, 64, 10])
+        nn.train(NUM_EPOCHS, data['train'])
+
+        print(f'Saving neural network as {NN_PICKLE}...')
+        with open(NN_PICKLE, 'wb') as f:
+            pkl.dump(nn, f)
