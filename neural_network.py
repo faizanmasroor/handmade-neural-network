@@ -1,5 +1,4 @@
 import math
-import pickle
 import pickle as pkl
 
 import numpy as np
@@ -11,9 +10,9 @@ from matrix_math import relu, deriv_relu, softmax, categorical_cross_entropy_los
 DATA_PICKLE = 'pickles/data.pkl'
 NN_PICKLE = 'pickles/nn.pkl'
 
-NUM_EPOCHS = 5
-BATCH_SIZE = 256
-LEARNING_RATE = 0.005
+NUM_EPOCHS = 10
+BATCH_SIZE = 64
+LEARNING_RATE = 0.001
 
 np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
 
@@ -164,7 +163,7 @@ class NeuralNetwork:
 if __name__ == '__main__':
     try:
         with open(DATA_PICKLE, 'rb') as f:
-            data = pickle.load(f)
+            data = pkl.load(f)
     except FileNotFoundError as e:
         print(f'Pickle file not found: {e.filename}; Loading data from CSV...')
         data: dict[str, list[tuple[np.ndarray, np.ndarray]]] = {}
