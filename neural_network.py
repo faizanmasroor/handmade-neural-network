@@ -3,6 +3,7 @@ import pickle
 import pickle as pkl
 
 import numpy as np
+from PIL import Image
 
 from data import load_data
 from matrix_math import relu, deriv_relu, softmax, categorical_cross_entropy_loss, one_hot_decode
@@ -10,9 +11,9 @@ from matrix_math import relu, deriv_relu, softmax, categorical_cross_entropy_los
 DATA_PICKLE = 'pickles/data.pkl'
 NN_PICKLE = 'pickles/nn.pkl'
 
-NUM_EPOCHS = 10
-BATCH_SIZE = 64
-LEARNING_RATE = 0.001
+NUM_EPOCHS = 5
+BATCH_SIZE = 256
+LEARNING_RATE = 0.005
 
 np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
 
@@ -189,3 +190,9 @@ if __name__ == '__main__':
         print(f'Saving neural network as {NN_PICKLE}...')
         with open(NN_PICKLE, 'wb') as f:
             pkl.dump(nn, f)
+
+    image = Image.open('three.png').convert('L')
+    arr = np.asarray(image, dtype=np.float64)
+    arr = arr.flatten().reshape(-1, 1)
+
+    print(one_hot_decode(nn.forward_propagate(arr)))
