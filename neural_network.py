@@ -12,7 +12,8 @@ NN_PICKLE = 'pickles/nn.pkl'
 
 NUM_EPOCHS = 10
 BATCH_SIZE = 64
-LEARNING_RATE = 0.0007
+LEARNING_RATE = 0.001
+DROPOUT_RATE = 0.2
 
 np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
 
@@ -63,7 +64,7 @@ class NeuralNetwork:
             np.random.shuffle(train_data)
             for sample_idx, (label, pixels) in enumerate(train_data, 1):
                 # IMPORTANT! Make forward propagation and backward propagation are called in order
-                prediction = self.forward_propagate(pixels)
+                prediction = self.forward_propagate(pixels, DROPOUT_RATE, True)
                 gradients = self.backward_propagate(label)
 
                 batch_gradients += [gradients]
@@ -74,8 +75,10 @@ class NeuralNetwork:
                     batch_num += 1
                     num_layers = len(batch_gradients[0]['dW'])
 
-                    # The scaled (by learning rate) batch-averaged gradient for the weights and biases, at each layer;
-                    # e.g., batch_estimate['dW'][2] stores the average dW2 np.ndarray of the last batch's backpropagations
+                    """
+                    The scaled (by learning rate) batch-averaged gradient for the weights and biases, at each layer;
+                    e.g., batch_estimate['dW'][2] stores the average dW2 np.ndarray of the last batch's backpropagations
+                    """
                     batch_estimate: dict[str, list[None | np.ndarray]] = {
                         'dW': [None] + [
                             LEARNING_RATE * np.mean(
@@ -113,15 +116,22 @@ class NeuralNetwork:
             prediction = self.forward_propagate(pixels)
             if one_hot_decode(prediction) == one_hot_decode(label): num_correct += 1
 
-        print(f'Accuracy: {100 * num_correct / len(data['test'])}% ({num_correct}/{len(data['test'])})')
+        print(f'Accuracy: {100 * num_correct / len(test_data)}% ({num_correct}/{len(test_data)})')
 
-    def forward_propagate(self, input_array: np.ndarray) -> np.ndarray:
+    def forward_propagate(self, input_array: np.ndarray, dropout_rate: float = 0, training: bool = False) -> np.ndarray:
         input_array = input_array.astype(np.float64)
 
         self.a[0] = input_array
         for i in range(1, len(self.a)):
             self.z[i] = self.W[i] @ self.a[i - 1] + self.b[i]  # Don't inline this! It's needed for backpropagation
             self.a[i] = self.activation_function(self.z[i])
+
+            # Dropout (only on hidden layers during training)
+            if training and dropout_rate > 0 and i != len(self.a) - 1:
+                dropout_mask = (np.random.rand(*self.a[i].shape) > dropout_rate).astype(np.float64)
+                self.a[i] *= dropout_mask
+                # Inverted dropout; results in not needing to scale activations by dropout rate during inference
+                self.a[i] /= 1 - dropout_rate
         self.a[-1] = softmax(self.z[-1])  # Overrides final activation function (sigmoid/tanh/relu) and applies softmax
 
         return self.a[-1]
