@@ -12,7 +12,7 @@ NN_PICKLE = 'pickles/nn.pkl'
 
 NUM_EPOCHS = 10
 BATCH_SIZE = 64
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0007
 
 np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
 
@@ -183,15 +183,29 @@ if __name__ == '__main__':
         nn.test(data['test'])
     except FileNotFoundError as e:
         print(f'Pickle file not found: {e.filename}; Initializing and training neural network...')
-        nn = NeuralNetwork(relu, [784, 128, 64, 10])
+        nn = NeuralNetwork(relu, [784, 512, 256, 128, 10])
         nn.train(NUM_EPOCHS, data['train'])
 
         print(f'Saving neural network as {NN_PICKLE}...')
         with open(NN_PICKLE, 'wb') as f:
             pkl.dump(nn, f)
 
-    image = Image.open('three.png').convert('L')
+    samples: dict[int, str] = {
+        0: 'samples/0.png',
+        1: 'samples/1.png',
+        2: 'samples/2.png',
+        3: 'samples/3.png',
+        4: 'samples/4.png',
+        5: 'samples/5.png',
+        6: 'samples/6.png',
+        7: 'samples/7.png',
+        8: 'samples/8.png',
+        9: 'samples/9.png',
+    }
+
+    image = Image.open(samples[0]).convert('L')
     arr = np.asarray(image, dtype=np.float64)
     arr = arr.flatten().reshape(-1, 1)
+    arr = (255 - arr) / 255  # Invert the grayscale to match the MNIST dataset and scales pixel values to [0, 1]
 
     print(one_hot_decode(nn.forward_propagate(arr)))

@@ -25,7 +25,7 @@ def load_csv_to_numpy(split: str, path: str, data: dict[str, list[tuple[np.ndarr
 
     print(f'Preprocessing "{split}" data...')
     data[split] = [
-        (one_hot_encode(int(raw_vector[0])), raw_vector[1:].reshape(-1, 1).astype(np.float64))
+        (one_hot_encode(int(raw_vector[0])), raw_vector[1:].reshape(-1, 1).astype(np.float64) / 255)
         for raw_vector in raw_data
     ]
     print(f'Finished preprocessing "{split}" data!')
