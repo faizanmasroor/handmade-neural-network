@@ -1,6 +1,7 @@
 import math
 import pickle as pkl
 
+import cv2
 import numpy as np
 from PIL import Image
 
@@ -15,6 +16,10 @@ BATCH_SIZE = 64
 LR_INITIAL = 0.001  # Represents initial learning rate
 LR_DECAY_RATE = 0.95  # Learning rate decays by 5% each epoch; set to 1 to deactivate learning rate decay
 DROPOUT_RATE = 0.2
+
+CANVAS_SIZE = 280
+DOWNSCALE_SIZE = 28
+PAINTBRUSH_THICKNESS = 16
 
 np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
 
@@ -201,22 +206,42 @@ if __name__ == '__main__':
         with open(NN_PICKLE, 'wb') as f:
             pkl.dump(nn, f)
 
-    samples: dict[int, str] = {
-        0: 'samples/0.png',
-        1: 'samples/1.png',
-        2: 'samples/2.png',
-        3: 'samples/3.png',
-        4: 'samples/4.png',
-        5: 'samples/5.png',
-        6: 'samples/6.png',
-        7: 'samples/7.png',
-        8: 'samples/8.png',
-        9: 'samples/9.png',
-    }
+    # Stream canvas window and predict image input
+    while True:
+        canvas = np.ones((CANVAS_SIZE, CANVAS_SIZE), dtype=np.uint8) * 255
+        state: dict[str, bool | None | tuple[int, int]] = {'drawing': False, 'last_point': None}
 
-    image = Image.open(samples[0]).convert('L')
-    arr = np.asarray(image, dtype=np.float64)
-    arr = arr.flatten().reshape(-1, 1)
-    arr = (255 - arr) / 255  # Invert the grayscale to match the MNIST dataset and scales pixel values to [0, 1]
+        # Do not remove unused parameters, they are needed for cv2 to successfully use this draw() function
+        def draw(event, x, y, flags, params):
+            if event == cv2.EVENT_LBUTTONDOWN:
+                state['drawing'] = True
+                state['last_point'] = (x, y)
+            elif event == cv2.EVENT_MOUSEMOVE and state['drawing']:
+                if state['last_point'] is not None:
+                    cv2.line(canvas, state['last_point'], (x, y), (0,), thickness=PAINTBRUSH_THICKNESS)
+                    state['last_point'] = (x, y)
+            elif event == cv2.EVENT_LBUTTONUP:
+                state['drawing'] = False
+                state['last_point'] = None
 
-    print(one_hot_decode(nn.forward_propagate(arr)))
+        cv2.namedWindow('Draw a digit (ESC to quit, Enter to predict)')
+        cv2.setMouseCallback('Draw a digit (ESC to quit, Enter to predict)', draw)
+
+        while True:
+            cv2.imshow('Draw a digit (ESC to quit, Enter to predict)', canvas)
+            key = cv2.waitKey(1) & 0xFF
+            if key == 27:  # ESC
+                cv2.destroyAllWindows()
+                exit()
+            elif key == 13:  # Enter
+                break
+
+        # Downscale to 28x28
+        img_resized = cv2.resize(canvas, (DOWNSCALE_SIZE, DOWNSCALE_SIZE), interpolation=cv2.INTER_AREA)
+        image = Image.fromarray(img_resized)
+        arr = np.asarray(image, dtype=np.float64)
+        arr = arr.flatten().reshape(-1, 1)
+        arr = (255 - arr) / 255  # Invert the grayscale to match the MNIST dataset and scales pixel values to [0, 1]
+
+        print('Predicted digit:', one_hot_decode(nn.forward_propagate(arr)))
+        canvas[:, :] = 255
