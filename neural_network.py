@@ -12,7 +12,8 @@ NN_PICKLE = 'pickles/nn.pkl'
 
 NUM_EPOCHS = 10
 BATCH_SIZE = 64
-LEARNING_RATE = 0.001
+LR_INITIAL = 0.001  # Represents initial learning rate
+LR_DECAY_RATE = 0.95  # Learning rate decays by 5% each epoch; set to 1 to deactivate learning rate decay
 DROPOUT_RATE = 0.2
 
 np.set_printoptions(threshold=12, edgeitems=6, linewidth=200, suppress=True)
@@ -81,14 +82,14 @@ class NeuralNetwork:
                     """
                     batch_estimate: dict[str, list[None | np.ndarray]] = {
                         'dW': [None] + [
-                            LEARNING_RATE * np.mean(
+                            (LR_INITIAL * (LR_DECAY_RATE ** epoch_idx)) * np.mean(
                                 [batch_gradient['dW'][layer_idx] for batch_gradient in batch_gradients],
                                 axis=0
                             )
                             for layer_idx in range(1, num_layers)
                         ],
                         'db': [None] + [
-                            LEARNING_RATE * np.mean(
+                            (LR_INITIAL * (LR_DECAY_RATE ** epoch_idx)) * np.mean(
                                 [batch_gradient['db'][layer_idx] for batch_gradient in batch_gradients],
                                 axis=0
                             )
@@ -193,7 +194,7 @@ if __name__ == '__main__':
         nn.test(data['test'])
     except FileNotFoundError as e:
         print(f'Pickle file not found: {e.filename}; Initializing and training neural network...')
-        nn = NeuralNetwork(relu, [784, 512, 256, 128, 10])
+        nn = NeuralNetwork(relu, [784, 128, 64, 10])
         nn.train(NUM_EPOCHS, data['train'])
 
         print(f'Saving neural network as {NN_PICKLE}...')
