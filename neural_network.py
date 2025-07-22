@@ -11,11 +11,11 @@ from matrix_math import relu, deriv_relu, softmax, categorical_cross_entropy_los
 DATA_PICKLE = 'pickles/data.pkl'
 NN_PICKLE = 'pickles/nn.pkl'
 
-NUM_EPOCHS = 15
-BATCH_SIZE = 64
-LR_INITIAL = 0.001  # Represents initial learning rate
+NUM_EPOCHS = 80
+BATCH_SIZE = 128
+LR_INITIAL = 0.05  # Represents initial learning rate
 LR_DECAY_RATE = 0.95  # Learning rate decays by 5% each epoch; set to 1 to deactivate learning rate decay
-DROPOUT_RATE = 0.1
+DROPOUT_RATE = 0.4
 
 CANVAS_SIZE = 280
 DOWNSCALE_SIZE = 28
@@ -199,7 +199,7 @@ if __name__ == '__main__':
         nn.test(data['test'])
     except FileNotFoundError as e:
         print(f'Pickle file not found: {e.filename}; Initializing and training neural network...')
-        nn = NeuralNetwork(relu, [784, 128, 64, 10])
+        nn = NeuralNetwork(relu, [784, 512, 256, 128, 10])
         nn.train(NUM_EPOCHS, data['train'])
 
         print(f'Saving neural network as {NN_PICKLE}...')
